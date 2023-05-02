@@ -54,21 +54,26 @@ class UserController extends Controller
             }
         }
 
-        $prize_pools =  PrizePool::where('id', $id)->get();
-        
-        foreach($prize_pools as $prize_pool) {
-            $prize_pool;
+        if($currentRace->is_finish == true) {
+            $prize_pool = PrizePool::where('race_id', $id)->first();
+            return response()->json([
+                'message' => 'This race has already finished.',
+                'attributes' => [
+                    'message' => $car1['car_model'] . ' vs ' . $car2['car_model'],
+                    'prize pool' => '$'.$prize_pool->prize_pool
+                ]
+            ]);
         }
 
         return response()->json([
-            'message' => 'The race start soon.',
+            'message' => 'This race start soon.',
             'attributes' => [
                 'message' => $car1['car_model'] . ' vs ' . $car2['car_model'],
-                'prize pool' =>'$'. $prize_pool->prize_pool,
+                'prize pool' => '$0'
             ]
         ]);
-
     }
+
 
     /**
      * Update the specified resource in storage.
@@ -125,7 +130,16 @@ class UserController extends Controller
     {
         $balance = Wallet::with('user')->where('user_id', auth()->user()->id)->first()->balance;
 
-        $race = Race::find($id);
+        $race = Race::where('id', $id)->first();
+        
+        $betCar = null;
+
+        if ($request->car_1 == true) {
+            $betCar = $race->car1 ?? null;
+        } elseif ($request->car_2 == true) {
+            $betCar = $race->car2  ?? null;
+        }
+
         if (!$race) {
             return response()->json([
                 'message' => 'Race not found'
@@ -161,8 +175,7 @@ class UserController extends Controller
 
         $betInfo =  Bet::create([
             'race_id' => $race->id,
-            'car_1' => $request->car_1 ?? null,
-            'car_2' => $request->car_2 ?? null,
+            'bet_car_id' => $betCar,
             'user_id' => auth()->user()->id,
             'bet_amount' => $bet
         ]);

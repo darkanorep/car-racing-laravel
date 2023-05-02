@@ -44,8 +44,5 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::post('bet/{raceId}', [UserController::class , 'bet']);
     });
 
-    //Auto
-    Route::post('/prize', Controller::class . '@prize');
-
     Route::post('/logout', [AuthController::class, 'logout']);
 });

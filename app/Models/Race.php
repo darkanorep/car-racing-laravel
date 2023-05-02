@@ -13,6 +13,11 @@ class Race extends Model
         'car1',
         'car2',
         'is_finish',
-        'remarks'
+        'remarks',
+        'car_id_winner'
     ];
+
+    public function winners() {
+        return $this->hasMany(Bet::class);
+    }
 }

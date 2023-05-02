@@ -11,9 +11,13 @@ class Bet extends Model
 
     protected $fillable = [
         'race_id',
-        'car_1',
-        'car_2',
+        'bet_car_id',
         'user_id',
         'bet_amount'
     ];
+
+    public function races() {
+        return $this->belongsTo(Race::class);
+    }
+
 }
