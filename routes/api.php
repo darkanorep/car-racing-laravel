@@ -33,6 +33,7 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
     //Moderator end
     Route::group(['prefix' => '/', 'middleware' => ['auth' => 'moderator']], function () {
         Route::get('set-race', ModeratorController::class . '@race');
+        Route::post('start-race/{id}',  ModeratorController::class . '@start');
     });
 
     //User end
@@ -42,6 +43,9 @@ Route::group(['middleware' => 'auth:sanctum'], function () {
         Route::get('balance', [UserController::class, 'checkBalance']);
         Route::post('bet/{raceId}', [UserController::class , 'bet']);
     });
+
+    //Auto
+    Route::post('/prize', Controller::class . '@prize');
 
     Route::post('/logout', [AuthController::class, 'logout']);
 });

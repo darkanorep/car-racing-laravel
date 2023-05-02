@@ -14,4 +14,8 @@ class PrizePool extends Model
         'bet_id',
         'prize_pool'
     ];
+
+    public function race() {
+        return $this->belongsTo(Race::class);
+    }
 }

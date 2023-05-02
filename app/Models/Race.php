@@ -11,6 +11,8 @@ class Race extends Model
 
     protected $fillable = [
         'car1',
-        'car2'
+        'car2',
+        'is_finish',
+        'remarks'
     ];
 }

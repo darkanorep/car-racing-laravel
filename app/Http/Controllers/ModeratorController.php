@@ -32,27 +32,11 @@ class ModeratorController extends Controller
             }
         }
 
-    
         if ($car1 === null || $car2 === null) {
             return response()->json([
                 'message' => 'Invalid car models.'
             ]);
         }
-
-    
-        // if ($car1['top_speed'] > $car2['top_speed']) {
-        //     return response()->json([
-        //         'message' => $car1['car_model'] . ' wins! with id of ' . $car1['id']
-        //     ]);
-        // } elseif ($car2['top_speed'] > $car1['top_speed']) {
-        //     return response()->json([
-        //         'message' => $car2['car_model'] . ' wins! with id of ' . $car2['id']
-        //     ]);
-        // } else {
-        //     return response()->json([
-        //         'message' => 'Draw'
-        //     ]);
-        // }
 
         $race = Race::create([
             'car1' => $car1['id'],
@@ -64,6 +48,62 @@ class ModeratorController extends Controller
         ]);
 
         return $race;
+    }
+
+    public function start($id) {
+        $cars = json_decode(Controller::getCars(), true);
+        $race = Race::find($id);
+
+        $car1 = $race->car1;
+        $car2 = $race->car2;
+
+        $carModel1 = null;
+        $carModel2 = null;
+
+        foreach ($cars as $car) {
+            if ($car1 == $car['id']) {
+                $carModel1 = $car;
+            } elseif ($car2 == $car['id']) {
+                $carModel2 = $car;
+            }
+        }
+
+        if ($race->is_finish == false) {
+            if ($carModel1['top_speed'] > $carModel2['top_speed']) {
+                $race->update([
+                    'remarks' => $carModel1['car_model'] . ' wins!',
+                    'is_finish' => true,
+                ]);
+                return response()->json([
+                    'message' => $carModel1['car_model'] . ' wins!',
+                ]);
+            } elseif ($carModel2['top_speed'] > $carModel1['top_speed']) {
+                $race->update([
+                    'remarks' => $carModel2['car_model'] . ' wins!',
+                    'is_finish' => true,
+                ]);
+                return response()->json([
+                    'message' => $carModel2['car_model'] . ' wins!'
+                ]);
+            } else {
+                $race->update([
+                    'remarks' => 'Draw',
+                    'is_finish' => true,
+                ]);
+                return response()->json([
+                    'message' => 'Draw'
+                ]);
+            }
+        } else {
+            return response()->json([
+                'message' => 'Race already finished'
+            ]);
+        }
+
+        $race->save();
+
+        
+        
     }
     
 }

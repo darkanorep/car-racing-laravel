@@ -54,10 +54,17 @@ class UserController extends Controller
             }
         }
 
+        $prize_pools =  PrizePool::where('id', $id)->get();
+        
+        foreach($prize_pools as $prize_pool) {
+            $prize_pool;
+        }
+
         return response()->json([
             'message' => 'The race start soon.',
             'attributes' => [
-                'message' => $car1['car_model'] . ' vs ' . $car2['car_model']
+                'message' => $car1['car_model'] . ' vs ' . $car2['car_model'],
+                'prize pool' =>'$'. $prize_pool->prize_pool,
             ]
         ]);
 
