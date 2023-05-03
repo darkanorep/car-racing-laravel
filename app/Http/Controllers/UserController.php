@@ -8,6 +8,7 @@ use App\Models\Wallet;
 use Illuminate\Http\Request;
 use App\Http\Requests\BetRequest;
 use App\Http\Requests\DepositRequest;
+use App\Http\Resources\WalletResource;
 use App\Models\PrizePool;
 
 class UserController extends Controller
@@ -33,6 +34,7 @@ class UserController extends Controller
      */
     public function show($id)
     {
+
         $cars = json_decode(Controller::getCars(), true);
 
         $car1 = null;
@@ -54,13 +56,17 @@ class UserController extends Controller
             }
         }
 
+        $race = Race::where('id', $id)->first();
+        $winners = $race->winners->where('bet_car_id', $race->car_id_winner);
+
         if($currentRace->is_finish == true) {
             $prize_pool = PrizePool::where('race_id', $id)->first();
             return response()->json([
                 'message' => 'This race has already finished.',
                 'attributes' => [
                     'message' => $car1['car_model'] . ' vs ' . $car2['car_model'],
-                    'prize pool' => '$'.$prize_pool->prize_pool
+                    'prize pool' => '$'.$prize_pool->prize_pool,
+                    'winners' => $winners
                 ]
             ]);
         }
@@ -94,35 +100,22 @@ class UserController extends Controller
     public function deposit(DepositRequest $request) {
 
         $wallet  = Wallet::where('user_id', auth()->user()->id)->first();
+        $wallet->balance += $request->amount;
+        $wallet->save();
 
-        if(!$wallet) {
-            $wallet = Wallet::create([
-                'user_id' => auth()->user()->id,
-                'balance' => $request->amount,
-            ]);
-
-        }else{
-            $wallet->balance += $request->amount;
-            $wallet->save();
-        }
-
-        return $this->depositReciept($wallet);
+        return $this->depositReciept(new WalletResource($wallet));
         
     }
 
     public function checkBalance() {
 
-        $balance = Wallet::with('user')->where('user_id', auth()->user()->id)->first()->balance;
-
-        return response()->json([
-            'message' => 'Your balance is $' . $balance
-        ]);
+        return new WalletResource(Wallet::with('user')->where('user_id', auth()->user()->id)->first());
     }
 
     private function depositReciept($wallet) {
         return response()->json([
             'message' => 'Deposit Successful',
-            'data' => $wallet
+            'data' => new WalletResource($wallet)
         ]);
     }
 
@@ -144,6 +137,12 @@ class UserController extends Controller
             return response()->json([
                 'message' => 'Race not found'
             ], 404);
+        }
+
+        if ($race->is_finish == true) {
+            return response([
+                'messasge' => 'This race has already finished.'
+            ]);
         }
 
         $existingBet = Bet::where('race_id', $race->id)

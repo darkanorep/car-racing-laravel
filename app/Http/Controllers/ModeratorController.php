@@ -2,6 +2,8 @@
 
 namespace App\Http\Controllers;
 
+use App\Exceptions\RaceException;
+use App\Http\Resources\RaceResource;
 use App\Models\Bet;
 use App\Models\Race;
 use App\Models\User;
@@ -9,6 +11,8 @@ use App\Models\Wallet;
 use GuzzleHttp\Client;
 use App\Models\PrizePool;
 use Illuminate\Http\Request;
+use App\Response\Status;
+use App\Response\Response;
 
 class ModeratorController extends Controller
 {
@@ -36,15 +40,13 @@ class ModeratorController extends Controller
         }
 
         if ($car1 === null || $car2 === null) {
-            return response()->json([
-                'message' => 'Invalid car models.'
-            ]);
+            return (new Response())->invalid('car', Status::BAD_REQUEST);
         }
 
-        $race = Race::create([
+        $race = new RaceResource(Race::create([
             'car1' => $car1['id'],
             'car2' => $car2['id']
-        ]);
+        ]));
 
         PrizePool::create([
             'race_id' => $race->id
@@ -57,12 +59,8 @@ class ModeratorController extends Controller
         $cars = json_decode(Controller::getCars(), true);
         
         $race = Race::where('id', $id)->first();
-        
-        if (!$race) {
-            return response()->json([
-                'message' => 'Race not found'
-            ], 404);
-        }
+        $response = new Response();
+        !$race ? $response->not_found('race', Status::NOT_FOUND) : '';
         
         if ($race->is_finish == false) {
             $car1 = null;
@@ -105,14 +103,10 @@ class ModeratorController extends Controller
                     'winners' => $winners,
                 ]);
             } else {
-                return response()->json([
-                    'message' => 'Invalid race'
-                ]);
+                return $response->invalid('race', Status::BAD_REQUEST);
             }
         } else {
-            return response()->json([
-                'message' => 'Race already finished'
-            ]);
+            return $response->success('Already finished', Status::OK);
         }
     }
 

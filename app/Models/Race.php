@@ -20,4 +20,5 @@ class Race extends Model
     public function winners() {
         return $this->hasMany(Bet::class);
     }
+
 }
