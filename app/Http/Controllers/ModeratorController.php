@@ -57,11 +57,12 @@ class ModeratorController extends Controller
 
     public function start($id) {
         $cars = json_decode(Controller::getCars(), true);
-        
         $race = Race::where('id', $id)->first();
-        $response = new Response();
-        !$race ? $response->not_found('race', Status::NOT_FOUND) : '';
         
+        if (!$race) {
+            return Response::not_found('race');
+        }
+
         if ($race->is_finish == false) {
             $car1 = null;
             $car2 = null;
@@ -103,14 +104,15 @@ class ModeratorController extends Controller
                     'winners' => $winners,
                 ]);
             } else {
-                return $response->invalid('race', Status::BAD_REQUEST);
+                return Response::invalid('race', Status::BAD_REQUEST);
             }
         } else {
-            return $response->success('Already finished', Status::OK);
+            return Response::success('This race has already finished');
         }
     }
 
-    public function distributePrize($winners, $totalPrizeMoney) {
+    private function distributePrize($winners, $totalPrizeMoney) {
+
         $numWinners = count($winners);
         $totalBets = 0;
         foreach ($winners as $winner) {
@@ -118,18 +120,29 @@ class ModeratorController extends Controller
         }
         $moderatorCommission = $totalPrizeMoney * 0.1;
         $prizePool = $totalPrizeMoney - $moderatorCommission;
-        $percentageShare = $prizePool / $totalBets;
-        foreach ($winners as $winner) {
-            $prize = $winner->bet_amount * $percentageShare;
-            $user = Wallet::where('user_id', $winner->user_id)->first();
-            $user->balance += $prize;
-            $user->save();
+
+        if ($totalBets > 0) {
+            $percentageShare = $prizePool / $totalBets;
+        } else {
+            $percentageShare = 0;
         }
- 
+
         $moderator = User::where('role', 'moderator')->first();
         $moderatorWallet = Wallet::where('user_id', $moderator->id)->first();
+
+        if ($numWinners == 0) {
+            $moderatorWallet->balance += $prizePool;
+            $moderatorWallet->save();
+        } else {
+            foreach ($winners as $winner) {
+                $prize = $winner->bet_amount * $percentageShare;
+                $user = Wallet::where('user_id', $winner->user_id)->first();
+                $user->balance += $prize;
+                $user->save();
+            }
+        }
+
         $moderatorWallet->balance += $moderatorCommission;
         $moderatorWallet->save();
-    }
-    
+    }   
 }

@@ -10,6 +10,7 @@ use App\Models\Wallet;
 use Illuminate\Http\Request;
 use App\Http\Requests\UserRequest;
 use App\Http\Resources\UserResource;
+use App\Http\Resources\WalletResource;
 use Illuminate\Support\Facades\Auth;
 
 class AuthController extends Controller
@@ -22,39 +23,25 @@ class AuthController extends Controller
             'role' => $request->has('role') ? $request->role : 'user'
         ], Status::OK));
 
-        Wallet::create([
+        new WalletResource(Wallet::create([
             'user_id' => $credentials->id,
-        ]);
+        ]));
 
         return $credentials;
     }
 
-    public function login(Request $request) {
-        // if (auth()->attempt($request->only('username', 'password'))) {
-        //     return response()->json([
-        //         'message' => 'Successfully logged in',
-        //         'username' => auth()->user()->username,
-        //         'token' => auth()->user()->createToken('authToken of '.auth()->user()->username)->plainTextToken
-        //     ], 200);
-        // } else {
-        //     // return (new Response())->unauthorized(Status::UNAUTHORIZED);
-        //     return throw AuthException::unauthorized(Status::UNAUTHORIZED);
-        //     // return throw new AuthException('Hello', Status::UNAUTHORIZED);
-        // }
-
-        $response = new Response();
+    public function login(Request $request) {     
 
         return auth()->attempt($request->only('username', 'password')) ? 
-            response()->json([
-                'message' => 'Successfully logged in',
-                'username' => auth()->user()->username,
-                'token' => auth()->user()->createToken('authToken of '.auth()->user()->username)->plainTextToken
-            ], 200) : $response->invalid('credentials' , Status::UNAUTHORIZED);
+        response()->json([
+            'message' => 'Successfully logged in',
+            'username' => auth()->user()->username,
+            'token' => auth()->user()->createToken('authToken of '.auth()->user()->username)->plainTextToken
+        ], 200) : Response::invalid('credentials' , Status::UNAUTHORIZED);
     }
 
     public function logout() {
         auth()->user()->tokens()->delete();
-
-        return throw AuthException::success(Status::OK);
+        return Response::success('Successfully logged out');
     }
 }

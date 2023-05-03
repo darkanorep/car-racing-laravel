@@ -8,8 +8,12 @@ use App\Models\Wallet;
 use Illuminate\Http\Request;
 use App\Http\Requests\BetRequest;
 use App\Http\Requests\DepositRequest;
+use App\Http\Resources\BetResource;
 use App\Http\Resources\WalletResource;
+use App\Response\Status;
+use App\Response\Response;
 use App\Models\PrizePool;
+use App\Response\Response as ResponseResponse;
 
 class UserController extends Controller
 {
@@ -43,9 +47,7 @@ class UserController extends Controller
         $currentRace = Race::where('id', $id)->first();
 
         if(!$currentRace) {
-            return response()->json([
-                'message' => 'Race not found'
-            ], 404);
+            return Response::not_found('race', Status::NOT_FOUND);
         }
 
         foreach ($cars as $car) {
@@ -59,8 +61,10 @@ class UserController extends Controller
         $race = Race::where('id', $id)->first();
         $winners = $race->winners->where('bet_car_id', $race->car_id_winner);
 
+        $prize_pool = PrizePool::where('race_id', $id)->first();
+        
         if($currentRace->is_finish == true) {
-            $prize_pool = PrizePool::where('race_id', $id)->first();
+            
             return response()->json([
                 'message' => 'This race has already finished.',
                 'attributes' => [
@@ -75,7 +79,7 @@ class UserController extends Controller
             'message' => 'This race start soon.',
             'attributes' => [
                 'message' => $car1['car_model'] . ' vs ' . $car2['car_model'],
-                'prize pool' => '$0'
+                'prize pool' => '$'.$prize_pool->prize_pool
             ]
         ]);
     }
@@ -134,15 +138,11 @@ class UserController extends Controller
         }
 
         if (!$race) {
-            return response()->json([
-                'message' => 'Race not found'
-            ], 404);
+            return Response::not_found('race', Status::NOT_FOUND);
         }
 
         if ($race->is_finish == true) {
-            return response([
-                'messasge' => 'This race has already finished.'
-            ]);
+            return Response::success('This race has already finished.');
         }
 
         $existingBet = Bet::where('race_id', $race->id)
@@ -150,34 +150,28 @@ class UserController extends Controller
                         ->first();
 
         if ($existingBet) {
-            return response()->json([
-                'message' => 'You have already placed a bet on this race.'
-            ], 422);
+            return Response::forbidden('You have already placed a bet on this race.');
         }
 
         if ($request->car_1 && $request->car_2) {
-            return response()->json([
-                'message' => 'Something went wrong, please choose only one car.'
-            ], 422);
+            return Response::request_timeout('Something went wrong, please choose only one car.');
         }
 
         $bet = $request->bet_amount;
         if ($bet > $balance) {
-            return response()->json([
-                'message' => 'Insufficient funds'
-            ], 422);
+            return Response::forbidden('Insufficient balance');
         }
         $balance -= $bet;
         $wallet = Wallet::where('user_id', auth()->user()->id)->first();
         $wallet->balance = $balance;
         $wallet->save();
 
-        $betInfo =  Bet::create([
+        $betInfo =  new BetResource(Bet::create([
             'race_id' => $race->id,
             'bet_car_id' => $betCar,
             'user_id' => auth()->user()->id,
             'bet_amount' => $bet
-        ]);
+        ]));
 
         $prize_pool = PrizePool::where('race_id', $race->id)->first();
         $prize_pool->prize_pool += $bet;
